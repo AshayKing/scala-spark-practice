@@ -18,14 +18,23 @@ class Department(val departmentId: Int, val departmentName: String) {
 
 object Department {
   
+  def apply(depId:Int,depName:String): Department = {
+    println("Overriding apply")
+    new Department(depId,depName)
+  }
+  
   def staticLikeMethod(): String = {
     "Static method content"
   }
 
   def main(args: Array[String]): Unit = {
+    // Explicitly instantiating Class
     val d = new Department(1);
     println(d)
     println(Department.staticLikeMethod);
+    
+    // Invoking Object's apply method
+    println(Department(1,"HR"))
   }
 
 }
