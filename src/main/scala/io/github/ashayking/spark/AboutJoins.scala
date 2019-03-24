@@ -66,6 +66,12 @@ object AboutJoins {
     .take(20)
     .foreach(println)
     
+    // grouping
+    val groupByCustId = ordersData
+    .map(rec => (rec.split(",")(2).toInt, rec))
+    .groupByKey()
+    .take(20)
+    .foreach(println)
   }
 
 }
