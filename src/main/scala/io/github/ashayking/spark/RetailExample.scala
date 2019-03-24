@@ -42,5 +42,23 @@ object RetailExample {
       .reduceByKey(_ + _)
       .take(5)
       .foreach(println)
+
+    // Agg by Key
+
+    orderItems
+      .map(oItem => (oItem.split(",")(1).toInt, oItem.split(",")(4).toFloat))
+      .take(10)
+      .foreach(println)
+
+    orderItems
+      .map(oItem => (oItem.split(",")(1).toInt, oItem.split(",")(4).toFloat))
+      // ele here will be value of key i.e. revenue for key:orderId
+      .aggregateByKey((0.0, 0))(
+        (total, ele) => (total._1 + ele, total._2 + 1), // will be performed on each partition
+        (total, internal) => (total._1 + internal._1, total._2 + internal._2) // performed of intiator
+      )
+      .take(10)
+      .foreach(println)
+
   }
 }
