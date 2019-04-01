@@ -9,6 +9,13 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.tuning.ParamGridBuilder
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.tuning.CrossValidator
+import org.apache.spark.ml.classification.DecisionTreeClassificationModel
+import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+
+import org.apache.spark._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
+import org.apache.spark.sql._
 
 /**
  * @author Ashay S Patil
@@ -129,6 +136,46 @@ object CustomerChurnClassification {
     //  .stages(3)
     //  .extractParamMap
 
+    val treeModel = bestModel.asInstanceOf[org.apache.spark.ml.PipelineModel].stages(3).asInstanceOf[DecisionTreeClassificationModel]
+    println("Learned classification tree model:\n" + treeModel.toDebugString)
+
+    val predictions = cvModel.transform(test)
+    val accuracy = evaluator.evaluate(predictions)
+    evaluator.explainParams()
+
+    val predictionAndLabels = predictions.select("prediction", "label").rdd.map(x =>
+      (x(0).asInstanceOf[Double], x(1).asInstanceOf[Double]))
+
+    val metrics = new BinaryClassificationMetrics(predictionAndLabels)
+    println("area under the precision-recall curve: " + metrics.areaUnderPR)
+    println("area under the receiver operating characteristic (ROC) curve : " + metrics.areaUnderROC)
+
+    println(metrics.fMeasureByThreshold())
+
+    val result = predictions.select("label", "prediction", "probability")
+    result.show
+    
+    val lp = predictions.select("label", "prediction")
+    val counttotal = predictions.count()
+    val correct = lp.filter($"label" === $"prediction").count()
+    val wrong = lp.filter(not($"label" === $"prediction")).count()
+    val ratioWrong = wrong.toDouble / counttotal.toDouble
+    val ratioCorrect = correct.toDouble / counttotal.toDouble
+    val truep = lp.filter($"prediction" === 0.0).filter($"label" === $"prediction").count() / counttotal.toDouble
+    val truen = lp.filter($"prediction" === 1.0).filter($"label" === $"prediction").count() / counttotal.toDouble
+    val falsep = lp.filter($"prediction" === 1.0).filter(not($"label" === $"prediction")).count() / counttotal.toDouble
+    val falsen = lp.filter($"prediction" === 0.0).filter(not($"label" === $"prediction")).count() / counttotal.toDouble
+
+    println("counttotal : " + counttotal)
+    println("correct : " + correct)
+    println("wrong: " + wrong)
+    println("ratio wrong: " + ratioWrong)
+    println("ratio correct: " + ratioCorrect)
+    println("ratio true positive : " + truep)
+    println("ratio false positive : " + falsep)
+    println("ratio true negative : " + truen)
+    println("ratio false negative : " + falsen)
+    
   }
 
 }
